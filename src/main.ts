@@ -1,20 +1,23 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { setupSwagger } from '../utils';
+import { ConfigService } from '@nestjs/config';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
+  const config = new ConfigService();
   const app = await NestFactory.create(AppModule);
+  setupSwagger(app);
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // Strips any properties that are not defined in the DTO
+      // forbidNonWhitelisted: true, // Throws an error if any non-whitelisted properties are present
+    }),
+  );
 
-  const config = new DocumentBuilder()
-    .setTitle('API Documentation')
-    .setDescription('The API description')
-    .setVersion('1.0')
-    .build();
+  app.enableCors();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
-
-  await app.listen(process.env.PORT ?? 3001);
+  await app.listen(config.get('PORT') ?? 3001);
 }
 
 bootstrap();
